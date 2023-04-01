@@ -2,12 +2,15 @@ import requests
 import os
 from dotenv.main import dotenv_values
 import urllib3
+import datetime
 import json
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
+
 
 
 urllib3.disable_warnings()
@@ -29,9 +32,10 @@ def main():
             # print(get_activities(token))
             events = get_activities(access_token)
             print(events)
-            post_events(events)
-            break
-        except Exception:
+            return post_events(events)
+            
+        except Exception as e:
+            print(e)
             access_token = get_access_token()
             
 
@@ -80,7 +84,7 @@ def get_activities(token):
 
 
 def post_events(events):
-    creds = ''
+    creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     if not creds or not creds.valid:
@@ -92,9 +96,7 @@ def post_events(events):
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
 
-
-
-
+   
 
 
 if __name__ == '__main__':
