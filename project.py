@@ -2,6 +2,8 @@ import requests
 import os
 from dotenv.main import dotenv_values
 import urllib3
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -61,13 +63,14 @@ def get_access_token():
 def get_activities(token):
     activities_url = 'https://www.strava.com/api/v3/athlete/activities'
     header = {'Authorization': 'Bearer ' + token}
-    param = {'page': 1, 'per_page': 20}
+    param = {'page': 1, 'per_page': 3}
     try:
         mydata_set = requests.get(activities_url, headers=header, params=param).json()
-        for i in range(20):
+        for i in range(3):
             event = {
                 'id': mydata_set[i]['id'],
                 'date': mydata_set[i]['start_date'],
+                'time': mydata_set[i]['elapsed_time'],
                 'name': mydata_set[i]['name'],
                 'type': mydata_set[i]['type'],
                 'distance': mydata_set[i]['distance'],
@@ -106,6 +109,11 @@ def post_events(events, creds):
         miles = round(event['distance'] / 1609.344)
         feet = round(event['elevation'] * 3.280839895)
 
+        # Create end_time string from start time and elapsed time
+        end_time = str(datetime.strptime(event['date'], '%Y-%m-%dT%H:%M:%SZ') + relativedelta(seconds=+event['time']))
+        date, time  = end_time.split(' ')
+        end_time = f'{date}T{time}Z'
+
         # Create event objects for calendar
         description = f"{event['type']}\ndistance: {miles} miles\nelevation: {feet} feet"
         event_to_add = {
@@ -116,17 +124,18 @@ def post_events(events, creds):
                 'dateTime': event['date']
             },
             'end': {
-                'dateTime': event['date']
+                'dateTime': end_time
             }
         }
+        print(event_to_add)
         
         # Check to see if event with id already exists, if not, add that event to the calendar
-        try:
-            results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
-            print(results['summary'])
-        except HttpError:
-            event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
-            print(f'event added: {event_to_add}')
+        # try:
+        #     results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
+        #     print(results['summary'])
+        # except HttpError:
+        event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
+        print(f'event added: {event_to_add}')
 
             
 
