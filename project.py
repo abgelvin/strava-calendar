@@ -20,25 +20,14 @@ REFRESH_TOKEN = config['REFRESH_TOKEN']
 GOOGLE_SECRET_FILE = 'client_secret.json'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-access_token = None
-events = []
+
 
 def main():
-    while True:
-        try:            
-            events = get_activities(access_token)
-            break
-        except Exception as e:
-            print(e)
-            access_token = get_access_token()
-
-    try: 
-        creds = connect_to_google()
-    except Exception as e:
-        print(e)
-    
+    access_token = get_access_token()
+    events = get_activities(access_token)
+    creds = connect_to_google()
     post_events(events, creds)
-            
+
 
 # Use refresh token to get return new access token
 def get_access_token():
@@ -53,6 +42,7 @@ def get_access_token():
 
     try:
         res = requests.post(auth_url, data=payload, verify=False)
+        print(f'stava result: {res.json()}')
         access_token = res.json()['access_token']
         return access_token
     except Exception as e:
@@ -61,12 +51,13 @@ def get_access_token():
 
 # Get list of last 20 activities using access token, return list of event objects
 def get_activities(token):
+    events = []
     activities_url = 'https://www.strava.com/api/v3/athlete/activities'
     header = {'Authorization': 'Bearer ' + token}
-    param = {'page': 1, 'per_page': 3}
+    param = {'page': 1, 'per_page': 20}
     try:
         mydata_set = requests.get(activities_url, headers=header, params=param).json()
-        for i in range(3):
+        for i in range(20):
             event = {
                 'id': mydata_set[i]['id'],
                 'date': mydata_set[i]['start_date'],
@@ -77,6 +68,7 @@ def get_activities(token):
                 'elevation': mydata_set[i]['total_elevation_gain']
             }
             events.append(event)
+        print(events)
         return events
     except Exception as e:
         print(f'Error: {e}')
@@ -127,21 +119,33 @@ def post_events(events, creds):
                 'dateTime': end_time
             }
         }
-        print(event_to_add)
-        
+               
         # Check to see if event with id already exists, if not, add that event to the calendar
-        # try:
-        #     results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
-        #     print(results['summary'])
-        # except HttpError:
-        event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
-        print(f'event added: {event_to_add}')
+        try:
+            results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
+            print(f"Already uploaded: {results['summary']}")
+        except HttpError:
+            event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
+            print(f'Event added: {event_to_add}')
 
             
 
-
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
