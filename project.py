@@ -42,7 +42,7 @@ def get_access_token():
 
     try:
         res = requests.post(auth_url, data=payload, verify=False)
-        print(f'stava result: {res.json()}')
+        # print(f'strava result: {res.json()}')
         access_token = res.json()['access_token']
         return access_token
     except Exception as e:
@@ -68,7 +68,7 @@ def get_activities(token):
                 'elevation': mydata_set[i]['total_elevation_gain']
             }
             events.append(event)
-        print(events)
+        # print(events)
         return events
     except Exception as e:
         print(f'Error: {e}')
@@ -119,16 +119,29 @@ def post_events(events, creds):
                 'dateTime': end_time
             }
         }
+        print(f'event to add: {event_to_add}')
                
+        send_event(service, calendarId, event['id'], event_to_add)
         # Check to see if event with id already exists, if not, add that event to the calendar
-        try:
-            results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
-            print(f"Already uploaded: {results['summary']}")
-        except HttpError:
-            event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
-            print(f'Event added: {event_to_add}')
+        # try:
+        #     results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
+        #     print(f"Already uploaded: {results['summary']}")
+        # except HttpError:
+        #     event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
+        #     print(f'Event added: {event_to_add}')
 
-            
+def send_event(service, calendar_id, event_id, body):
+    try:
+        results = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+        print(f"Already uploaded: {results['summary']}")
+    except HttpError:
+        service.events().insert(calendarId=calendar_id, body=body).execute()
+        print(f'Event added: {body}')
+
+
+
+
+
 
 if __name__ == '__main__':
     main()
