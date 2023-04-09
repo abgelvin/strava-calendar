@@ -18,7 +18,7 @@ CLIENT_ID = config['CLIENT_ID']
 CLIENT_SECRET = config['CLIENT_SECRET']
 REFRESH_TOKEN = config['REFRESH_TOKEN']
 GOOGLE_SECRET_FILE = 'client_secret.json'
-SCOPES = ['https://www.googleapis.com/auth/calendar']
+SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 
 
 
@@ -29,7 +29,7 @@ def main():
     post_events(events, creds)
 
 
-# Use refresh token to get return new access token
+# Use refresh token to get return new access token for Strava
 def get_access_token():
     auth_url = 'http://www.strava.com/oauth/token'
     payload = {
@@ -74,20 +74,23 @@ def get_activities(token):
         print(f'Error: {e}')
 
 
-# Get connection credentials to connect to google calendar API
+# Get connection credentials to connect to google calendar API -- if token expired, delete token.json file to get new one
 def connect_to_google():
     creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return creds
+    try:
+        if os.path.exists('token.json'):
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+        return creds
+    except Exception:
+        print('Token expired. Delete token.json file to get new token.')
 
 
  # Post Strava events to google calendar
@@ -119,16 +122,10 @@ def post_events(events, creds):
                 'dateTime': end_time
             }
         }
-        print(f'event to add: {event_to_add}')
+        # print(f'event to add: {event_to_add}')
                
         send_event(service, calendarId, event['id'], event_to_add)
-        # Check to see if event with id already exists, if not, add that event to the calendar
-        # try:
-        #     results = service.events().get(calendarId=calendarId, eventId=event['id']).execute()
-        #     print(f"Already uploaded: {results['summary']}")
-        # except HttpError:
-        #     event = service.events().insert(calendarId=calendarId, body=event_to_add).execute()
-        #     print(f'Event added: {event_to_add}')
+        
 
 def send_event(service, calendar_id, event_id, body):
     try:

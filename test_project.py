@@ -18,9 +18,14 @@ class TestProject(unittest.TestCase):
         assert response == fake_access_token
     
     
+    def test_get_activities(self):
+        mock = Mock()
+        with patch('project.requests.get', mock) as _:
+            assert mock.assert_called_once
+
+
     def test_post_events(self):
         events = [{'id': 8822112517, 'date': '2023-04-02T20:56:21Z', 'time': 3583, 'name': 'Toward Ouray', 'type': 'Ride', 'distance': 20335.7, 'elevation': 186.0}]
-        event_to_add = {'id': 8849275858, 'summary': 'Addie grooming walk', 'description': 'Walk\ndistance: 3 miles\nelevation: 103 feet', 'start': {'dateTime': '2023-04-07T16:15:00Z'}, 'end': {'dateTime': '2023-04-07T17:04:32Z'}}
         mock_build = Mock()
         mock_send = Mock()
 
