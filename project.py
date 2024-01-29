@@ -82,6 +82,7 @@ def connect_to_google():
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
+                # os.remove(token.json)
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
@@ -91,6 +92,8 @@ def connect_to_google():
         return creds
     except Exception:
         print('Token expired. Delete token.json file to get new token.')
+        os.remove("token.json")
+        main()
 
 
  # Post Strava events to google calendar
